@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const http = require("http");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs"); // ✅ added
 
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
@@ -32,7 +33,6 @@ const io = new Server(server, {
     methods: ["GET", "POST"]
   }
 });
-
 setIO(io);
 
 
@@ -46,7 +46,6 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
-
 app.options("*", cors());
 
 
@@ -79,33 +78,35 @@ app.get("/api/health", (_req, res) => {
 });
 
 
-// ===================== 🔥 FULL SEED ROUTE =====================
+// ===================== 🔥 FINAL SEED ROUTE =====================
 app.get("/api/seed", async (req, res) => {
   try {
     const Tenant = require("./models/Tenant");
-    const User = require("./models/User");
     const Camera = require("./models/Camera");
 
-    // Clear old data
+    // clear old data
     await Tenant.deleteMany();
     await User.deleteMany();
     await Camera.deleteMany();
 
-    // Create Tenant
+    // create tenant
     const tenant = await Tenant.create({
       name: "SGS"
     });
 
-    // Create Admin User
+    // hash password (VERY IMPORTANT)
+    const hashedPassword = await bcrypt.hash("123456", 10);
+
+    // create user
     const user = await User.create({
       name: "Admin",
       email: "admin@erc.local",
-      password: "123456",
+      password: hashedPassword,
       role: "admin",
       tenant: tenant._id
     });
 
-    // Create Cameras (IMPORTANT: tenant + createdBy)
+    // create cameras
     await Camera.insertMany([
       {
         name: "Front Gate Camera",
@@ -139,8 +140,11 @@ app.get("/api/seed", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("SEED ERROR:", err);
-    res.status(500).json({ error: err.message });
+    console.error("❌ SEED ERROR FULL:", err);
+    res.status(500).json({
+      error: err.message,
+      details: err.stack
+    });
   }
 });
 
