@@ -39,14 +39,13 @@ setIO(io);
 connectDB();
 
 
-// ===================== CORS FIX =====================
+// ===================== CORS =====================
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// 🔥 Handle preflight requests
 app.options("*", cors());
 
 
@@ -76,6 +75,27 @@ io.on("connection", async (socket) => {
 // ===================== HEALTH ROUTE =====================
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "erc-support-api" });
+});
+
+
+// ===================== 🔥 SEED ROUTE (ADD THIS) =====================
+app.get("/api/seed", async (req, res) => {
+  try {
+    const Camera = require("./models/Camera");
+
+    await Camera.deleteMany();
+
+    await Camera.insertMany([
+      { name: "Front Gate Camera", location: "Gate", status: "working" },
+      { name: "Office Camera", location: "Office", status: "not_working" },
+      { name: "Parking Camera", location: "Parking", status: "working" }
+    ]);
+
+    res.json({ message: "✅ Data seeded successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Seeding failed" });
+  }
 });
 
 
