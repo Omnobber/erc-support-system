@@ -23,43 +23,39 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-/* ===================== SOCKET.IO ===================== */
+
+// ===================== SOCKET.IO =====================
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://erc-support-system.vercel.app",
-      "https://erc-support-system-git-main-omnobbers-projects.vercel.app",
-      "http://localhost:5173"
-    ],
-    credentials: true
+    origin: "*",
+    methods: ["GET", "POST"]
   }
 });
 
 setIO(io);
 
-/* ===================== DATABASE ===================== */
+
+// ===================== DATABASE =====================
 connectDB();
 
-/* ===================== CORS FIX ===================== */
+
+// ===================== CORS FIX =====================
 app.use(cors({
-  origin: [
-    "https://erc-support-system.vercel.app",
-    "https://erc-support-system-git-main-omnobbers-projects.vercel.app",
-    "http://localhost:5173"
-  ],
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// 🔥 handle preflight requests (fixes your error)
+// 🔥 Handle preflight requests
 app.options("*", cors());
 
-/* ===================== MIDDLEWARE ===================== */
+
+// ===================== MIDDLEWARE =====================
 app.use(express.json({ limit: "8mb" }));
 app.use(morgan("dev"));
 
-/* ===================== SOCKET AUTH ===================== */
+
+// ===================== SOCKET AUTH =====================
 io.on("connection", async (socket) => {
   const token = socket.handshake.auth?.token;
   if (!token) return;
@@ -76,12 +72,14 @@ io.on("connection", async (socket) => {
   }
 });
 
-/* ===================== HEALTH ROUTE ===================== */
+
+// ===================== HEALTH ROUTE =====================
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "erc-support-api" });
 });
 
-/* ===================== ROUTES ===================== */
+
+// ===================== ROUTES =====================
 app.use("/api/auth", authRoutes);
 app.use("/api/cameras", cameraRoutes);
 app.use("/api/calls", callRoutes);
@@ -90,11 +88,13 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/uploads", uploadRoutes);
 
-/* ===================== ERROR HANDLING ===================== */
+
+// ===================== ERROR HANDLING =====================
 app.use(notFound);
 app.use(errorHandler);
 
-/* ===================== SERVER ===================== */
+
+// ===================== SERVER =====================
 const port = process.env.PORT || 5000;
 
 server.listen(port, "0.0.0.0", () => {
