@@ -22,54 +22,66 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+/* ===================== SOCKET.IO ===================== */
 const io = new Server(server, {
   cors: {
-    origin: (process.env.CORS_ORIGIN || "http://localhost:5173,http://127.0.0.1:5173")
-      .split(",")
-      .map((item) => item.trim()),
+    origin: [
+      "https://erc-support-system.vercel.app",
+      "https://erc-support-system-git-main-omnobbers-projects.vercel.app",
+      "http://localhost:5173"
+    ],
     credentials: true
   }
 });
+
 setIO(io);
 
+/* ===================== DATABASE ===================== */
 connectDB();
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const allowedOrigins = new Set(
-        (process.env.CORS_ORIGIN || "http://localhost:5173,http://127.0.0.1:5173")
-          .split(",")
-          .map((item) => item.trim())
-      );
-      if (allowedOrigins.has(origin)) return callback(null, true);
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
-    }
-  })
-);
+/* ===================== CORS FIX ===================== */
+app.use(cors({
+  origin: [
+    "https://erc-support-system.vercel.app",
+    "https://erc-support-system-git-main-omnobbers-projects.vercel.app",
+    "http://localhost:5173"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
 
+// 🔥 handle preflight requests (fixes your error)
+app.options("*", cors());
+
+/* ===================== MIDDLEWARE ===================== */
 app.use(express.json({ limit: "8mb" }));
 app.use(morgan("dev"));
 
+/* ===================== SOCKET AUTH ===================== */
 io.on("connection", async (socket) => {
   const token = socket.handshake.auth?.token;
   if (!token) return;
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("_id tenant");
+
     if (user?.tenant) {
       socket.join(`tenant:${user.tenant.toString()}`);
     }
-  } catch (_error) {
+  } catch (error) {
     socket.disconnect(true);
   }
 });
 
+/* ===================== HEALTH ROUTE ===================== */
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "erc-support-api" });
 });
 
+/* ===================== ROUTES ===================== */
 app.use("/api/auth", authRoutes);
 app.use("/api/cameras", cameraRoutes);
 app.use("/api/calls", callRoutes);
@@ -78,10 +90,13 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/uploads", uploadRoutes);
 
+/* ===================== ERROR HANDLING ===================== */
 app.use(notFound);
 app.use(errorHandler);
 
+/* ===================== SERVER ===================== */
 const port = process.env.PORT || 5000;
+
 server.listen(port, "0.0.0.0", () => {
   console.log(`API running on port ${port}`);
 });
