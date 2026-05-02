@@ -22,7 +22,7 @@ const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 dotenv.config();
 
-const app = express();   // ✅ MUST BE BEFORE ANY ROUTES
+const app = express();   // ✅ MUST be first
 const server = http.createServer(app);
 
 
@@ -78,7 +78,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 
-// ===================== 🔥 SEED ROUTE =====================
+// ===================== 🔥 FINAL SEED ROUTE =====================
 app.get("/api/seed", async (req, res) => {
   try {
     const Tenant = require("./models/Tenant");
@@ -89,25 +89,26 @@ app.get("/api/seed", async (req, res) => {
     await User.deleteMany();
     await Camera.deleteMany();
 
-    // ✅ FIXED tenant (code added)
+    // ✅ FIXED tenant (code required)
     const tenant = await Tenant.create({
       name: "SGS",
       code: "SGS001"
     });
 
-    // hash password
-    const hashedPassword = await bcrypt.hash("123456", 10);
+    // ✅ strong password (validation safe)
+    const hashedPassword = await bcrypt.hash("Admin@123", 10);
 
-    // create user
+    // ✅ valid email format
     const user = await User.create({
       name: "Admin",
-      email: "admin@erc.local",
+      email: "admin@gmail.com",
       password: hashedPassword,
       role: "admin",
-      tenant: tenant._id
+      tenant: tenant._id,
+      isActive: true
     });
 
-    // create cameras
+    // cameras
     await Camera.insertMany([
       {
         name: "Front Gate Camera",
@@ -135,13 +136,13 @@ app.get("/api/seed", async (req, res) => {
     res.json({
       message: "🔥 Seed successful",
       login: {
-        email: "admin@erc.local",
-        password: "123456"
+        email: "admin@gmail.com",
+        password: "Admin@123"
       }
     });
 
   } catch (err) {
-    console.error("❌ SEED ERROR FULL:", err);
+    console.error("❌ SEED ERROR:", err);
     res.status(500).json({
       error: err.message
     });
