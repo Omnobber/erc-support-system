@@ -3,11 +3,21 @@ const User = require("../models/User");
 const Tenant = require("../models/Tenant");
 const asyncHandler = require("../utils/asyncHandler");
 
+// ================= TOKEN =================
 const createToken = (user) =>
-  jwt.sign({ id: user._id, tenantId: user.tenant?._id || user.tenant }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d"
-  });
+  jwt.sign(
+    {
+      id: user._id,
+      tenant: user.tenant?._id || user.tenant,
+      role: user.role
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d"
+    }
+  );
 
+// ================= SAFE USER =================
 const safeUser = (user) => ({
   id: user._id,
   name: user.name,
@@ -18,14 +28,36 @@ const safeUser = (user) => ({
   tenantName: user.tenant?.name
 });
 
+// ================= LOGIN =================
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  let { email, password } = req.body;
 
-  const user = await User.findOne({ email: email.toLowerCase(), isActive: true })
+  // 🔥 FIX 1: validate input
+  if (!email || !password) {
+    res.status(400);
+    throw new Error("Email and password required");
+  }
+
+  // 🔥 FIX 2: normalize email
+  email = email.toLowerCase().trim();
+
+  // 🔥 FIX 3: include password explicitly
+  const user = await User.findOne({
+    email,
+    isActive: true
+  })
     .populate("tenant", "name code")
     .select("+password");
 
-  if (!user || !(await user.comparePassword(password))) {
+  // 🔥 FIX 4: proper check
+  if (!user) {
+    res.status(401);
+    throw new Error("Invalid credentials");
+  }
+
+  const isMatch = await user.comparePassword(password);
+
+  if (!isMatch) {
     res.status(401);
     throw new Error("Invalid credentials");
   }
@@ -36,15 +68,23 @@ const login = asyncHandler(async (req, res) => {
   });
 });
 
+// ================= CURRENT USER =================
 const me = asyncHandler(async (req, res) => {
   await req.user.populate("tenant", "name code");
-  res.json({ user: safeUser(req.user) });
+
+  res.json({
+    user: safeUser(req.user)
+  });
 });
 
+// ================= REGISTER USER =================
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role, phone } = req.body;
+  let { name, email, password, role, phone } = req.body;
 
-  const exists = await User.findOne({ email: email.toLowerCase() });
+  email = email.toLowerCase().trim();
+
+  const exists = await User.findOne({ email });
+
   if (exists) {
     res.status(409);
     throw new Error("User already exists");
@@ -52,7 +92,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const user = await User.create({
     name,
-    email: email.toLowerCase(),
+    email,
     password,
     role,
     phone: phone || "",
@@ -65,10 +105,16 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 });
 
+// ================= CREATE TENANT + ADMIN =================
 const createTenantAndAdmin = asyncHandler(async (req, res) => {
-  const { tenantName, tenantCode, name, email, password, phone } = req.body;
+  let { tenantName, tenantCode, name, email, password, phone } = req.body;
 
-  const exists = await Tenant.findOne({ code: tenantCode.toUpperCase() });
+  email = email.toLowerCase().trim();
+
+  const exists = await Tenant.findOne({
+    code: tenantCode.toUpperCase()
+  });
+
   if (exists) {
     res.status(409);
     throw new Error("Tenant code already exists");
@@ -81,7 +127,7 @@ const createTenantAndAdmin = asyncHandler(async (req, res) => {
 
   const user = await User.create({
     name,
-    email: email.toLowerCase(),
+    email,
     password,
     role: "admin",
     phone: phone || "",
@@ -94,6 +140,7 @@ const createTenantAndAdmin = asyncHandler(async (req, res) => {
   });
 });
 
+// ================= LIST ENGINEERS =================
 const listEngineers = asyncHandler(async (req, res) => {
   const engineers = await User.find({
     role: "engineer",
@@ -104,4 +151,10 @@ const listEngineers = asyncHandler(async (req, res) => {
   res.json({ engineers });
 });
 
-module.exports = { login, me, registerUser, listEngineers, createTenantAndAdmin };
+module.exports = {
+  login,
+  me,
+  registerUser,
+  listEngineers,
+  createTenantAndAdmin
+};
