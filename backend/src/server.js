@@ -14,6 +14,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+
 const User = require("./models/User");
 const { setIO } = require("./utils/socket");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
@@ -78,23 +79,68 @@ app.get("/api/health", (_req, res) => {
 });
 
 
-// ===================== 🔥 SEED ROUTE (ADD THIS) =====================
+// ===================== 🔥 FULL SEED ROUTE =====================
 app.get("/api/seed", async (req, res) => {
   try {
+    const Tenant = require("./models/Tenant");
+    const User = require("./models/User");
     const Camera = require("./models/Camera");
 
+    // Clear old data
+    await Tenant.deleteMany();
+    await User.deleteMany();
     await Camera.deleteMany();
 
+    // Create Tenant
+    const tenant = await Tenant.create({
+      name: "SGS"
+    });
+
+    // Create Admin User
+    const user = await User.create({
+      name: "Admin",
+      email: "admin@erc.local",
+      password: "123456",
+      role: "admin",
+      tenant: tenant._id
+    });
+
+    // Create Cameras (IMPORTANT: tenant + createdBy)
     await Camera.insertMany([
-      { name: "Front Gate Camera", location: "Gate", status: "working" },
-      { name: "Office Camera", location: "Office", status: "not_working" },
-      { name: "Parking Camera", location: "Parking", status: "working" }
+      {
+        name: "Front Gate Camera",
+        location: "Gate",
+        status: "working",
+        tenant: tenant._id,
+        createdBy: user._id
+      },
+      {
+        name: "Office Camera",
+        location: "Office",
+        status: "not_working",
+        tenant: tenant._id,
+        createdBy: user._id
+      },
+      {
+        name: "Parking Camera",
+        location: "Parking",
+        status: "working",
+        tenant: tenant._id,
+        createdBy: user._id
+      }
     ]);
 
-    res.json({ message: "✅ Data seeded successfully" });
+    res.json({
+      message: "🔥 Seed successful",
+      login: {
+        email: "admin@erc.local",
+        password: "123456"
+      }
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Seeding failed" });
+    console.error("SEED ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
