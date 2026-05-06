@@ -84,6 +84,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/cameras", cameraRoutes);
 app.use("/api/calls", callRoutes);
+app.use("/api/tickets", callRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/reports", reportRoutes);
