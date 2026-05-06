@@ -1,50 +1,57 @@
-# Welcome to your Expo app 👋
+# ERC Mobile (Android)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Android wrapper app for the ERC website using `react-native-webview` and Expo.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## 1) Install
 
 ```bash
-npm run reset-project
+cd erc-mobile
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 2) Set Website URL
 
-## Learn more
+Use one of these methods:
 
-To learn more about developing your project with Expo, look at the following resources:
+1. Environment variable (recommended):
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+$env:EXPO_PUBLIC_WEB_APP_URL="https://your-frontend-domain.com"
+```
 
-## Join the community
+2. Or set `expo.extra.webAppUrl` in [app.json](/E:/public_html/tml%20erc/erc-mobile/app.json).
 
-Join our community of developers creating universal apps.
+## 3) Start Android
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npx expo start --android
+```
+
+You can run on:
+- Android emulator
+- Physical Android phone with Expo Go
+
+## Local Network Testing
+
+If your website is running locally:
+
+1. Run frontend with host access:
+
+```bash
+cd frontend
+npm run dev -- --host
+```
+
+2. Use your laptop IP in mobile URL:
+
+```bash
+$env:EXPO_PUBLIC_WEB_APP_URL="http://192.168.x.x:5173"
+```
+
+3. Make sure phone and laptop are on same Wi-Fi.
+
+## Notes
+
+- If the app shows `Unable to open website`, check URL and internet.
+- Pull down to refresh is enabled in the WebView.
+- Backend CORS should allow your frontend domain for API calls.

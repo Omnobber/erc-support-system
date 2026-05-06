@@ -13,15 +13,12 @@ import CameraWaffle from "../components/CameraWaffle";
 const PRIMARY_DARK = "#1E293B";
 const GREEN_OK = "#32CD32";
 const RED_DOWN = "#FF0000";
-const AMBER_IDLE = "#D6A300";
 const statusColors = {
   Working: GREEN_OK,
-  "Not Working": RED_DOWN,
-  "Not In Use": AMBER_IDLE
+  "Not Working": RED_DOWN
 };
 const faultCategoryColors = {
   "Camera Not Working": RED_DOWN,
-  "Camera Not In Use": AMBER_IDLE,
   "Network Issue": "#0EA5E9",
   "Power Failure": "#D6A300",
   "Wiring Issue": "#F97316",
@@ -29,7 +26,6 @@ const faultCategoryColors = {
 };
 const monthlyDowncallColors = {
   "Camera Not Working": RED_DOWN,
-  "Camera Not In Use": AMBER_IDLE,
   "Network Issue": "#0ea5e9",
   "Power Failure": "#d6a300",
   "Wiring Issue": "#f97316",
@@ -37,7 +33,6 @@ const monthlyDowncallColors = {
 };
 const monthlyDowncallCategoryOrder = [
   "Camera Not Working",
-  "Camera Not In Use",
   "Network Issue",
   "Power Failure",
   "Wiring Issue",
@@ -59,7 +54,6 @@ const LEGEND_ZONE_CLASS = "mt-2 flex h-[120px] items-start justify-center";
 const LEGEND_STACK_CLASS = "w-full max-w-[230px] space-y-2 text-sm font-medium text-[#1E293B]";
 const FAULT_LABEL_BY_KEY = {
   camera_not_working: "Camera Not Working",
-  camera_not_in_use: "Camera Not In Use",
   network_issue: "Network Issue",
   power_failure: "Power Failure",
   wiring_issue: "Wiring Issue"
@@ -68,23 +62,14 @@ const FAULT_KEY_BY_LABEL = Object.entries(FAULT_LABEL_BY_KEY).reduce(
   (acc, [key, label]) => ({ ...acc, [label]: key }),
   {}
 );
-const ISSUE_OPTIONS = [
-  "Camera Not Working",
-  "Camera Not In Use",
-  "Network Issue",
-  "Power Failure",
-  "Wiring Issue"
-];
-const FAULT_CHART_ORDER = ["Camera Not Working", "Camera Not In Use", "Network Issue", "Power Failure", "Wiring Issue", "Other"];
+const ISSUE_OPTIONS = ["Camera Not Working", "Network Issue", "Power Failure", "Wiring Issue"];
+const FAULT_CHART_ORDER = ["Camera Not Working", "Network Issue", "Power Failure", "Wiring Issue", "Other"];
 const WAFFLE_STATUS_WORKING = "working";
 const WAFFLE_STATUS_NOT_WORKING = "not-working";
-const WAFFLE_STATUS_NOT_IN_USE = "not-in-use";
 const WAFFLE_STATUS_LABEL = {
   [WAFFLE_STATUS_WORKING]: "Working",
-  [WAFFLE_STATUS_NOT_WORKING]: "Not Working",
-  [WAFFLE_STATUS_NOT_IN_USE]: "Not In Use"
+  [WAFFLE_STATUS_NOT_WORKING]: "Not Working"
 };
-const NON_WORKING_STATUSES = new Set([WAFFLE_STATUS_NOT_WORKING, WAFFLE_STATUS_NOT_IN_USE]);
 
 const RADIAN = Math.PI / 180;
 const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
@@ -134,7 +119,6 @@ const normalizeMonthlyDowncalls = (rows) => {
 
   return [
     { key: "camera_not_working", name: "Camera Not Working", value: counts["Camera Not Working"] },
-    { key: "camera_not_in_use", name: "Camera Not In Use", value: counts["Camera Not In Use"] },
     { key: "network_issue", name: "Network Issue", value: counts["Network Issue"] },
     { key: "power_failure", name: "Power Failure", value: counts["Power Failure"] },
     { key: "wiring_issue", name: "Wiring Issue", value: counts["Wiring Issue"] },
@@ -144,18 +128,13 @@ const normalizeMonthlyDowncalls = (rows) => {
 const normalizeCameraForWaffle = (camera, index) => {
   const id = camera?._id || camera?.id || `camera-${index + 1}`;
   const rawStatus = camera?.status;
+  const isWorking = rawStatus === "active" || rawStatus === WAFFLE_STATUS_WORKING;
   const normalizedIssue = FAULT_LABEL_BY_KEY[camera?.lastFaultCategory] || null;
-  let normalizedStatus = WAFFLE_STATUS_NOT_WORKING;
-  if (rawStatus === "active" || rawStatus === WAFFLE_STATUS_WORKING) normalizedStatus = WAFFLE_STATUS_WORKING;
-  if (rawStatus === "maintenance" || rawStatus === WAFFLE_STATUS_NOT_IN_USE) normalizedStatus = WAFFLE_STATUS_NOT_IN_USE;
-  const defaultIssue =
-    normalizedStatus === WAFFLE_STATUS_NOT_IN_USE ? "Camera Not In Use" : "Camera Not Working";
   return {
     ...camera,
     id,
-    status: normalizedStatus,
-    issue: normalizedStatus === WAFFLE_STATUS_WORKING ? null : normalizedIssue || defaultIssue,
-    downUntil: camera?.downUntil || null
+    status: isWorking ? WAFFLE_STATUS_WORKING : WAFFLE_STATUS_NOT_WORKING,
+    issue: isWorking ? null : normalizedIssue || "Camera Not Working"
   };
 };
 
@@ -170,11 +149,6 @@ const getDisplayValue = (value) => {
   if (value === null || value === undefined) return "N/A";
   const stringValue = String(value).trim();
   return stringValue.length ? stringValue : "N/A";
-};
-const toDateTimeInputValue = (value) => {
-  if (!value) return "";
-  const parsed = dayjs(value);
-  return parsed.isValid() ? parsed.format("YYYY-MM-DDTHH:mm") : "";
 };
 
 const TimeRangeToggle = ({ value, onChange, disabled }) => (
@@ -222,8 +196,7 @@ const AdminDashboard = () => {
     open: false,
     cameraId: null,
     status: WAFFLE_STATUS_WORKING,
-    issue: "Camera Not Working",
-    downUntil: ""
+    issue: "Camera Not Working"
   });
   const [savingStatusUpdate, setSavingStatusUpdate] = useState(false);
   const [error, setError] = useState("");
@@ -275,8 +248,7 @@ const AdminDashboard = () => {
         return {
           ...normalized,
           status: preserved.status,
-          issue: preserved.issue,
-          downUntil: preserved.downUntil
+          issue: preserved.issue
         };
       });
     });
@@ -306,8 +278,7 @@ const AdminDashboard = () => {
       open: true,
       cameraId: selectedCamera.id,
       status: selectedCamera.status || WAFFLE_STATUS_WORKING,
-      issue: selectedCamera.issue || "Camera Not Working",
-      downUntil: toDateTimeInputValue(selectedCamera.downUntil)
+      issue: selectedCamera.issue || "Camera Not Working"
     });
   };
 
@@ -316,34 +287,23 @@ const AdminDashboard = () => {
       open: false,
       cameraId: null,
       status: WAFFLE_STATUS_WORKING,
-      issue: "Camera Not Working",
-      downUntil: ""
+      issue: "Camera Not Working"
     });
   };
 
   const saveStatusEditor = async () => {
-    const requiresIssue = NON_WORKING_STATUSES.has(statusEditor.status);
+    const requiresIssue = statusEditor.status === WAFFLE_STATUS_NOT_WORKING;
     if (requiresIssue && !statusEditor.issue) return;
     const targetCamera = interactiveCameras.find((camera) => camera.id === statusEditor.cameraId);
     if (!targetCamera) return;
 
     const nextStatus = statusEditor.status;
-    const nextIssue = NON_WORKING_STATUSES.has(nextStatus) ? statusEditor.issue : null;
+    const nextIssue = nextStatus === WAFFLE_STATUS_NOT_WORKING ? statusEditor.issue : null;
     const nextFaultCategory = nextIssue ? FAULT_KEY_BY_LABEL[nextIssue] || "camera_not_working" : "";
-    const nextDownUntil =
-      NON_WORKING_STATUSES.has(nextStatus) && statusEditor.downUntil
-        ? new Date(statusEditor.downUntil).toISOString()
-        : null;
     const patchPayload = {
-      status:
-        nextStatus === WAFFLE_STATUS_WORKING
-          ? "active"
-          : nextStatus === WAFFLE_STATUS_NOT_IN_USE
-            ? "maintenance"
-            : "faulty",
+      status: nextStatus === WAFFLE_STATUS_WORKING ? "active" : "faulty",
       lastFaultCategory: nextFaultCategory,
-      lastIssue: nextIssue || "",
-      downUntil: nextDownUntil
+      lastIssue: nextIssue || ""
     };
 
     setSavingStatusUpdate(true);
@@ -365,8 +325,7 @@ const AdminDashboard = () => {
           ...camera,
           status: nextStatus,
           issue: nextIssue,
-          lastFaultCategory: nextFaultCategory,
-          downUntil: nextDownUntil
+          lastFaultCategory: nextFaultCategory
         };
       })
     );
@@ -385,7 +344,7 @@ const AdminDashboard = () => {
     let nonWorking = 0;
 
     interactiveCameras.forEach((camera) => {
-      if (!NON_WORKING_STATUSES.has(camera.status)) return;
+      if (camera.status !== WAFFLE_STATUS_NOT_WORKING) return;
       nonWorking += 1;
       const rawIssue = typeof camera.issue === "string" ? camera.issue.trim() : "";
       const normalizedIssue = rawIssue.length ? rawIssue : "Camera Not Working";
@@ -462,7 +421,7 @@ const AdminDashboard = () => {
     .filter((row) => Number.isFinite(Number(row.value)))
     .filter((row) => Number(row.value) > 0);
   console.log("Monthly Data:", filteredMonthlyData);
-  const monthlyDowncalls = filteredMonthlyData.slice(0, 6);
+  const monthlyDowncalls = filteredMonthlyData.slice(0, 5);
   const isMonthlyDataTrulyEmpty = monthlyDowncalls.length === 0;
   const totalMonthlyDowncalls = monthlyDowncalls.reduce((sum, row) => sum + row.value, 0);
   const cameraStatusKpi = (
@@ -631,7 +590,7 @@ const AdminDashboard = () => {
 
       <ChartCard title={`Camera Waffle Grid (${totalCameras} Cameras)`}>
         <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
-          Click any camera to view full details. Use Edit to update status, issue, and till when.
+          Click any camera to view full details. Use Edit to update working status and issue.
         </p>
         <div className="grid gap-4 lg:grid-cols-[2fr,1fr]">
           <div>
@@ -704,11 +663,7 @@ const AdminDashboard = () => {
                     <span className="font-medium text-slate-500 dark:text-slate-400">Status</span>
                     <span
                       className={`text-right font-semibold ${
-                        selectedCamera.status === WAFFLE_STATUS_WORKING
-                          ? "text-[#32CD32]"
-                          : selectedCamera.status === WAFFLE_STATUS_NOT_IN_USE
-                            ? "text-[#D6A300]"
-                            : "text-[#FF0000]"
+                        selectedCamera.status === WAFFLE_STATUS_WORKING ? "text-[#32CD32]" : "text-[#FF0000]"
                       }`}
                     >
                       {WAFFLE_STATUS_LABEL[selectedCamera.status] || "Not Working"}
@@ -717,18 +672,8 @@ const AdminDashboard = () => {
                   <div className="flex justify-between gap-3 rounded-lg bg-white px-3 py-2 dark:bg-slate-950">
                     <span className="font-medium text-slate-500 dark:text-slate-400">Issue</span>
                     <span className="text-right font-semibold text-slate-900 dark:text-slate-100">
-                      {NON_WORKING_STATUSES.has(selectedCamera.status)
+                      {selectedCamera.status === WAFFLE_STATUS_NOT_WORKING
                         ? getDisplayValue(selectedCamera.issue)
-                        : "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between gap-3 rounded-lg bg-white px-3 py-2 dark:bg-slate-950">
-                    <span className="font-medium text-slate-500 dark:text-slate-400">Till When</span>
-                    <span className="text-right font-semibold text-slate-900 dark:text-slate-100">
-                      {NON_WORKING_STATUSES.has(selectedCamera.status)
-                        ? selectedCamera.downUntil
-                          ? dayjs(selectedCamera.downUntil).format("DD MMM YYYY, hh:mm A")
-                          : "N/A"
                         : "N/A"}
                     </span>
                   </div>
@@ -757,12 +702,10 @@ const AdminDashboard = () => {
               Choose the current health state for this camera.
             </p>
 
-            <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setStatusEditor((previous) => ({ ...previous, status: WAFFLE_STATUS_WORKING, downUntil: "" }))
-                }
+                onClick={() => setStatusEditor((previous) => ({ ...previous, status: WAFFLE_STATUS_WORKING }))}
                 className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                   statusEditor.status === WAFFLE_STATUS_WORKING
                     ? "border-emerald-500 bg-emerald-50 text-emerald-700"
@@ -773,13 +716,7 @@ const AdminDashboard = () => {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  setStatusEditor((previous) => ({
-                    ...previous,
-                    status: WAFFLE_STATUS_NOT_WORKING,
-                    issue: "Camera Not Working"
-                  }))
-                }
+                onClick={() => setStatusEditor((previous) => ({ ...previous, status: WAFFLE_STATUS_NOT_WORKING }))}
                 className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
                   statusEditor.status === WAFFLE_STATUS_NOT_WORKING
                     ? "border-rose-500 bg-rose-50 text-rose-700"
@@ -788,22 +725,9 @@ const AdminDashboard = () => {
               >
                 Not Working
               </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setStatusEditor((previous) => ({ ...previous, status: WAFFLE_STATUS_NOT_IN_USE, issue: "Camera Not In Use" }))
-                }
-                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                  statusEditor.status === WAFFLE_STATUS_NOT_IN_USE
-                    ? "border-amber-500 bg-amber-50 text-amber-700"
-                    : "border-slate-200 text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                Not In Use
-              </button>
             </div>
 
-            {NON_WORKING_STATUSES.has(statusEditor.status) && (
+            {statusEditor.status === WAFFLE_STATUS_NOT_WORKING && (
               <div className="mt-4">
                 <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Issue</label>
                 <select
@@ -817,22 +741,6 @@ const AdminDashboard = () => {
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
-
-            {NON_WORKING_STATUSES.has(statusEditor.status) && (
-              <div className="mt-4">
-                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                  Till When (Optional)
-                </label>
-                <input
-                  type="datetime-local"
-                  value={statusEditor.downUntil}
-                  onChange={(event) =>
-                    setStatusEditor((previous) => ({ ...previous, downUntil: event.target.value }))
-                  }
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-400 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                />
               </div>
             )}
 

@@ -12,7 +12,7 @@ export default function LoginScreen({ navigation }) {
       navigation.navigate("Dashboard", {
         token: res.data.token,
       });
-    } catch (err) {
+    } catch (_err) {
       alert("Login failed");
     }
   };

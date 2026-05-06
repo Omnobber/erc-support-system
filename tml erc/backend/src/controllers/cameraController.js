@@ -39,7 +39,7 @@ const updateCamera = asyncHandler(async (req, res) => {
     throw new Error("Camera not found");
   }
 
-  ["name", "location", "status", "notes", "downUntil", "lastServiceDate", "lastFaultCategory", "lastIssue"].forEach((key) => {
+  ["name", "location", "status", "notes", "lastServiceDate", "lastFaultCategory", "lastIssue"].forEach((key) => {
     if (req.body[key] !== undefined) camera[key] = req.body[key];
   });
 

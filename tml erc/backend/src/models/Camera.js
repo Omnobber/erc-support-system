@@ -28,10 +28,6 @@ const cameraSchema = new mongoose.Schema(
       enum: ["active", "faulty", "maintenance"],
       default: "active"
     },
-    downUntil: {
-      type: Date,
-      default: null
-    },
     lastCheckedAt: {
       type: Date,
       default: Date.now
@@ -50,7 +46,7 @@ const cameraSchema = new mongoose.Schema(
     },
     lastFaultCategory: {
       type: String,
-      enum: ["camera_not_working", "camera_not_in_use", "wiring_issue", "power_failure", "network_issue", ""],
+      enum: ["camera_not_working", "wiring_issue", "power_failure", "network_issue", ""],
       default: ""
     },
     assignedEngineer: {

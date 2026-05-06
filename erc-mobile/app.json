@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "erc-mobile",
+    "name": "ERC Mobile",
     "slug": "erc-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,6 +12,12 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": ["**/*"]
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "com.erc.mobile"
+    },
+    "extra": {
+      "webAppUrl": "https://your-frontend-domain.com"
+    }
   }
 }

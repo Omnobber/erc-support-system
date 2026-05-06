@@ -3,7 +3,6 @@ import { useState } from "react";
 const colorByStatus = {
   working: "bg-[#32CD32]",
   "not-working": "bg-[#FF0000]",
-  "not-in-use": "bg-[#D6A300]",
   active: "bg-brand-500",
   faulty: "bg-ember-500",
   maintenance: "bg-ambertone-500"

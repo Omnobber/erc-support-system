@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const cameraStatus = ["active", "faulty", "maintenance"];
-const faultCategories = ["camera_not_working", "camera_not_in_use", "wiring_issue", "power_failure", "network_issue", ""];
+const faultCategories = ["camera_not_working", "wiring_issue", "power_failure", "network_issue", ""];
 
 const createCameraSchema = Joi.object({
   cameraId: Joi.string().trim().required(),
@@ -20,7 +20,6 @@ const updateCameraSchema = Joi.object({
     .valid(...cameraStatus)
     .optional(),
   notes: Joi.string().allow("").optional(),
-  downUntil: Joi.date().allow(null).optional(),
   lastServiceDate: Joi.date().optional(),
   lastFaultCategory: Joi.string()
     .valid(...faultCategories)
