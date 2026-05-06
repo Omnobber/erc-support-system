@@ -28,12 +28,15 @@ const LoginPage = () => {
     setError("");
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(email.trim().toLowerCase(), password);
       if (user.role === "admin") navigate("/admin");
       else if (user.role === "engineer") navigate("/engineer");
       else navigate("/client");
     } catch (err) {
-      if (err.response?.data?.message) {
+      const details = err.response?.data?.details;
+      if (Array.isArray(details) && details.length > 0) {
+        setError(details[0].replaceAll("\"", ""));
+      } else if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
         setError(

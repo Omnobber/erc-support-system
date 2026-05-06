@@ -20,13 +20,28 @@ const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 dotenv.config();
 
+const defaultOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://sgssupport.in",
+  "https://www.sgssupport.in"
+];
+const allowedOrigins = new Set(
+  [
+    ...defaultOrigins,
+    ...(process.env.CORS_ORIGIN || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  ]
+);
+
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
   cors: {
-    origin: (process.env.CORS_ORIGIN || "http://localhost:5173,http://127.0.0.1:5173")
-      .split(",")
-      .map((item) => item.trim()),
+    origin: [...allowedOrigins],
     credentials: true
   }
 });
@@ -38,11 +53,6 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      const allowedOrigins = new Set(
-        (process.env.CORS_ORIGIN || "http://localhost:5173,http://127.0.0.1:5173")
-          .split(",")
-          .map((item) => item.trim())
-      );
       if (allowedOrigins.has(origin)) return callback(null, true);
       return callback(new Error(`CORS blocked for origin: ${origin}`));
     }
@@ -55,6 +65,7 @@ app.use(morgan("dev"));
 io.on("connection", async (socket) => {
   const token = socket.handshake.auth?.token;
   if (!token) return;
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("_id tenant");
